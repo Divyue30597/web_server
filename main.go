@@ -1,60 +1,145 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 )
 
 const port = "8080"
 
+type apiConfig struct {
+	fileserverhits int
+}
+
+type chirp struct {
+	Body string `json:"body"`
+}
+
+type errorResponse struct {
+	Err string `json:"error"`
+}
+
+type validChirp struct {
+	Valid bool `json:"valid"`
+}
+
 func main() {
-	// Creating a new serve mux
-	// ServeMux is an HTTP request multiplexer that matches the URL of each incoming request against
-	// a list of registered patterns and calls the handler for the pattern that most closely matches
-	// the URL.
 	mux := http.NewServeMux()
 
-	// Creating a static file server
-	// The http.FileServer creates a handler that serves HTTP requests with the contents of the file
-	// system.
-	// This will take index.html file from the root directory of the project.
+	cfg := &apiConfig{
+		fileserverhits: 0,
+	}
+
 	mux.Handle("/", http.FileServer(http.Dir(".")))
 
-	// Creating a health check
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Write([]byte("OK"))
-	})
+	mux.Handle("/app/*", http.StripPrefix("/app",
+		cfg.middlewareMetricsInc(http.FileServer(http.Dir("."))),
+	))
 
-	// This is wrong way of implementing a static file server.
-	// mux.HandleFunc("/app/assets", func(w http.ResponseWriter, r *http.Request) {
-	// 	w.WriteHeader(http.StatusOK)
-	// 	w.Write([]byte(`<pre><a href="logo.png">logo.png</a></pre>`))
-	// })
+	mux.HandleFunc("GET /api/healthz", healthHandler)
+	mux.HandleFunc("GET /admin/metrics", cfg.handlerMetrics)
+	mux.HandleFunc("GET /api/reset", cfg.handlerReset)
+	mux.HandleFunc("POST /api/validate_chirp", postChirp)
 
-	// mux.HandleFunc("/app", func(w http.ResponseWriter, r *http.Request) {
-	// 	w.WriteHeader(http.StatusOK)
-	// 	w.Write([]byte(`<html>Welcome to Chirpy</html>`))
-	// })
-
-	// Creating a static file server for /app
-	// The http.StripPrefix strips the prefix from the URL and serves the request using the file
-	// server.
-	mux.Handle("/app/*", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
-
-	// Creating a server
-	// The Server type is an HTTP server. The pointer server points to a new Server value with the
-	// specified network address and handler. 
 	server := &http.Server{
 		Addr:    ":" + port,
 		Handler: mux,
 	}
 
-	// Starting the server using ListenAndServe method of the Server type
-	err := server.ListenAndServe()
 	fmt.Println("Serving on port " + port)
+	err := server.ListenAndServe()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+}
+
+func postChirp(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+
+	params := chirp{}
+	err := decoder.Decode(&params)
+	if err != nil {
+
+		errVal := errorResponse{
+			Err: "Something went wrong",
+		}
+		data, err := json.Marshal(errVal)
+		if err != nil {
+			log.Printf("error marshalling json: %v", err)
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(data)
+		return
+	}
+
+	if len(params.Body) > 140 {
+		errVal := errorResponse{
+			Err: "Chirp is too long",
+		}
+
+		data, err := json.Marshal(errVal)
+		if err != nil {
+			log.Printf("error marshalling json: %v", err)
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(data)
+		return
+	}
+
+	validChirp := validChirp{
+		Valid: true,
+	}
+
+	data, err := json.Marshal(validChirp)
+	if err != nil {
+		errVal := errorResponse{
+			Err: "Something went wrong",
+		}
+		data, err := json.Marshal(errVal)
+		if err != nil {
+			log.Printf("error marshalling json: %v", err)
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(data)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+// func respondWithJSON
+
+
+func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf(`
+	<html>
+
+		<body>
+				<h1>Welcome, Chirpy Admin</h1>
+				<p>Chirpy has been visited %d times!</p>
+		</body>
+
+	</html>
+	`, cfg.fileserverhits)))
+}
+
+
+
+
+func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
+	cfg.fileserverhits = 0
+	w.WriteHeader(http.StatusOK)
+	// w.Write([]byte("Hits reset to 0"))
+}
+
+func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cfg.fileserverhits++
+		w.Header().Add("Cache-Control", "no-cache")
+		next.ServeHTTP(w, r)
+	})
 }

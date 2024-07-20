@@ -3,10 +3,6 @@ package database
 import "fmt"
 
 func (db *DB) CreateChirp(body string) (Chirp, error) {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-
-	// we read the database
 	dbStruct, err := db.loadDB()
 	if err != nil {
 		return Chirp{}, err
@@ -29,9 +25,6 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 }
 
 func (db *DB) GetChirps() ([]Chirp, error) {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-
 	dbStruct, err := db.loadDB()
 	if err != nil {
 		return nil, err
@@ -46,9 +39,6 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 }
 
 func (db *DB) GetSingleChirp(id int) (Chirp, error) {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-
 	dbStruct, err := db.loadDB()
 	if err != nil {
 		return Chirp{}, err

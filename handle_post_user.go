@@ -2,15 +2,31 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
+	"github.com/Divyue30597/web_server/internal/auth"
 	"github.com/Divyue30597/web_server/internal/database"
-	"golang.org/x/crypto/bcrypt"
 )
 
+type User struct {
+	Id       int    `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func (cfg *apiConfig) postUser(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+
+	type response struct {
+		User
+	}
+
 	decoder := json.NewDecoder(r.Body)
-	params := database.User{}
+	params := parameters{}
 
 	err := decoder.Decode(&params)
 	if err != nil {
@@ -18,27 +34,27 @@ func (cfg *apiConfig) postUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params.Password = hashPassword(params.Password)
-	data, err := cfg.DB.CreateUser(params)
+	hashedPassword, err := auth.HashPassword(params.Password)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error creating user")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't hash password")
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, struct {
-		Id    int    `json:"id"`
-		Email string `json:"email"`
-	}{
-		Id:    data.Id,
-		Email: data.Email,
-	})
-}
-
-func hashPassword(password string) string {
-	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	user, err := cfg.DB.CreateUser(params.Email, hashedPassword)
 	if err != nil {
-		return err.Error()
+		if errors.Is(err, database.ErrAlreadyExists) {
+			respondWithError(w, http.StatusConflict, "User already exists")
+			return
+		}
+
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create user")
+		return
 	}
 
-	return string(hashedPass)
+	respondWithJSON(w, http.StatusCreated, response{
+		User: User{
+			Id:    user.Id,
+			Email: user.Email,
+		},
+	})
 }

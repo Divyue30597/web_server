@@ -1,11 +1,9 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/Divyue30597/web_server/internal/database"
 )
@@ -21,20 +19,6 @@ type apiConfig struct {
 
 func main() {
 	mux := http.NewServeMux()
-
-	dbg := flag.Bool("debug", false, "Enable debug mode")
-
-	flag.Parse()
-
-	if *dbg {
-		fmt.Println("Debug mode enabled. Deleting the database...")
-		file, err := os.Stat("database.json")
-		if file.Name() == "database.json" {
-			os.Remove("database.json")
-		} else if err != nil {
-			log.Fatal(err)
-		}
-	}
 
 	db, err := database.NewDB("database.json")
 	if err != nil {
@@ -67,10 +51,7 @@ func main() {
 	}
 
 	fmt.Println("Serving on port " + port)
-	err = server.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(server.ListenAndServe())
 }
 
 func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {

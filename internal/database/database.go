@@ -2,14 +2,16 @@ package database
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"os"
 	"sync"
 )
 
+var ErrNotExist = errors.New("resource does not exist")
+
 type DB struct {
 	path string
-	mux  *sync.Mutex
+	mux  *sync.RWMutex
 }
 
 type DBStructure struct {
@@ -31,7 +33,7 @@ type User struct {
 func NewDB(path string) (*DB, error) {
 	db := &DB{
 		path: path,
-		mux:  &sync.Mutex{},
+		mux:  &sync.RWMutex{},
 	}
 
 	if err := db.ensureDB(); err != nil {
@@ -71,16 +73,17 @@ func (db *DB) ensureDB() error {
 }
 
 func (db *DB) loadDB() (DBStructure, error) {
+	db.mux.RLock()
+	defer db.mux.RUnlock()
+
 	var dbStruct DBStructure
 	data, err := os.ReadFile(db.path)
 	if err != nil {
-		fmt.Println(err, "readfile")
 		return DBStructure{}, err
 	}
 
 	err = json.Unmarshal(data, &dbStruct)
 	if err != nil {
-		fmt.Println(err, "json unmarshal")
 		return DBStructure{}, err
 	}
 
@@ -88,6 +91,9 @@ func (db *DB) loadDB() (DBStructure, error) {
 }
 
 func (db *DB) writeDB(dbStructure DBStructure) error {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
 	data, err := json.Marshal(dbStructure)
 	if err != nil {
 		return err

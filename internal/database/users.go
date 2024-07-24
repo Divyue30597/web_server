@@ -3,6 +3,8 @@ package database
 import (
 	"errors"
 	"fmt"
+
+	"github.com/Divyue30597/web_server/internal/auth"
 )
 
 var ErrAlreadyExists = errors.New("already exists")
@@ -97,3 +99,34 @@ func (db *DB) GetUsers() ([]User, error) {
 
 // 	return User{}, errors.New("user not found in db")
 // }
+
+func (db *DB) UpdateUser(id int, email, password string) (User, error) {
+	// No update logic yet
+	dbStruct, err := db.loadDB()
+	if err != nil {
+		return User{}, nil
+	}
+
+	user, ok := dbStruct.Users[id]
+	if !ok {
+		return User{}, ErrNotExist
+	}
+
+	user.Email = email
+
+	hashedPassword, err := auth.HashPassword(password)
+	if err != nil {
+		return User{}, err
+	}
+
+	user.Password = hashedPassword
+
+	dbStruct.Users[id] = user
+
+	err = db.writeDB(dbStruct)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}

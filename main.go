@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/Divyue30597/web_server/internal/database"
+	"github.com/joho/godotenv"
 )
 
 const port = "8080"
@@ -15,9 +17,12 @@ var profanity = []string{"kerfuffle", "sharbert", "fornax"}
 type apiConfig struct {
 	fileserverhits int
 	DB             *database.DB
+	Jwt            string
 }
 
 func main() {
+	godotenv.Load()
+	jwtSecret := os.Getenv("JWT_SECRET")
 	mux := http.NewServeMux()
 
 	db, err := database.NewDB("database.json")
@@ -28,6 +33,7 @@ func main() {
 	cfg := &apiConfig{
 		fileserverhits: 0,
 		DB:             db,
+		Jwt:            jwtSecret,
 	}
 
 	mux.Handle("/", http.FileServer(http.Dir(".")))
@@ -44,6 +50,7 @@ func main() {
 	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.getSingleChirp)
 	mux.HandleFunc("POST /api/users", cfg.postUser)
 	mux.HandleFunc("POST /api/login", cfg.login)
+	mux.HandleFunc("PUT /api/users", cfg.putUser)
 
 	server := &http.Server{
 		Addr:    ":" + port,

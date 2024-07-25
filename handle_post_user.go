@@ -9,13 +9,6 @@ import (
 	"github.com/Divyue30597/web_server/internal/database"
 )
 
-type User struct {
-	Id       int    `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Token    string `json:"token"`
-}
-
 func (cfg *apiConfig) postUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password string `json:"password"`

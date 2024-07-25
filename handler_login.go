@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/Divyue30597/web_server/internal/auth"
-	"github.com/Divyue30597/web_server/internal/token"
 )
 
 func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
@@ -27,6 +27,7 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 	err := decode.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "error decoding body")
+		return
 	}
 
 	if params.ExpiresInSeconds == 0 || params.ExpiresInSeconds > 24*60*60 {
@@ -41,13 +42,26 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 
 	err = auth.VerifyPassword(params.Password, user.Password)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid password")
+		respondWithError(w, http.StatusUnauthorized, "invalid password")
 		return
 	}
 
-	token, err := token.CreateToken(user.Id, params.ExpiresInSeconds, cfg.Jwt)
+	token, err := auth.CreateToken(user.Id, cfg.Jwt)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Couldn't create token")
+		respondWithError(w, http.StatusBadRequest, "couldn't create token")
+		return
+	}
+
+	refreshToken, err := auth.CreateRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "couldn't create refresh token")
+		return
+	}
+
+	// save refresh token to DB with expiration time
+	err = cfg.DB.SaveRefreshToken(user.Id, refreshToken)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%v", err))
 		return
 	}
 
@@ -55,9 +69,10 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
-			Id:    user.Id,
-			Email: user.Email,
-			Token: token,
+			Id:           user.Id,
+			Email:        user.Email,
+			Token:        token,
+			RefreshToken: refreshToken,
 		},
 	})
 }

@@ -20,6 +20,14 @@ type apiConfig struct {
 	Jwt            string
 }
 
+type User struct {
+	Id           int    `json:"id"`
+	Email        string `json:"email"`
+	Password     string `json:"-"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 func main() {
 	godotenv.Load()
 	jwtSecret := os.Getenv("JWT_SECRET")
@@ -51,6 +59,8 @@ func main() {
 	mux.HandleFunc("POST /api/users", cfg.postUser)
 	mux.HandleFunc("POST /api/login", cfg.login)
 	mux.HandleFunc("PUT /api/users", cfg.putUser)
+	mux.HandleFunc("POST /api/refresh", cfg.refreshToken)
+	mux.HandleFunc("POST /api/revoke", cfg.revoke)
 
 	server := &http.Server{
 		Addr:    ":" + port,

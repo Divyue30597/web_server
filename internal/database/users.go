@@ -3,8 +3,7 @@ package database
 import (
 	"errors"
 	"fmt"
-
-	"github.com/Divyue30597/web_server/internal/auth"
+	"time"
 )
 
 var ErrAlreadyExists = errors.New("already exists")
@@ -100,7 +99,7 @@ func (db *DB) GetUsers() ([]User, error) {
 // 	return User{}, errors.New("user not found in db")
 // }
 
-func (db *DB) UpdateUser(id int, email, password string) (User, error) {
+func (db *DB) UpdateUser(id int, email, hashedPassword string) (User, error) {
 	// No update logic yet
 	dbStruct, err := db.loadDB()
 	if err != nil {
@@ -113,14 +112,7 @@ func (db *DB) UpdateUser(id int, email, password string) (User, error) {
 	}
 
 	user.Email = email
-
-	hashedPassword, err := auth.HashPassword(password)
-	if err != nil {
-		return User{}, err
-	}
-
 	user.Password = hashedPassword
-
 	dbStruct.Users[id] = user
 
 	err = db.writeDB(dbStruct)
@@ -129,4 +121,66 @@ func (db *DB) UpdateUser(id int, email, password string) (User, error) {
 	}
 
 	return user, nil
+}
+
+func (db *DB) SaveRefreshToken(id int, refreshToken string) error {
+	dbStruct, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+
+	user := dbStruct.Users[id]
+	user.RefreshToken = refreshToken
+	expirationTime := time.Now().Add(time.Duration(60 * 24 * 60 * 60 * time.Second)).UTC().Format(time.RFC3339)
+	user.RefreshTokenExpirationTime = expirationTime
+	dbStruct.Users[id] = user
+
+	err = db.writeDB(dbStruct)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (db *DB) GetUserFromRefreshToken(refreshToken string) (User, error) {
+	dbStruct, err := db.loadDB()
+	if err != nil {
+		return User{}, nil
+	}
+
+	for _, user := range dbStruct.Users {
+		if user.RefreshToken == refreshToken {
+			return user, nil
+		}
+	}
+
+	return User{}, err
+}
+
+func (db *DB) UpdateUserFromRefreshToken(refreshToken string) error {
+	dbStruct, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+
+	for _, user := range dbStruct.Users {
+		if user.RefreshToken == refreshToken {
+			parseTime, err := time.Parse(time.RFC3339, user.RefreshTokenExpirationTime)
+			if err != nil {
+				return err
+			}
+
+			if time.Now().UTC().After(parseTime) {
+				user.RefreshToken = ""
+				user.RefreshTokenExpirationTime = ""
+				dbStruct.Users[user.Id] = user
+				return errors.New("refresh token expired")
+			}
+		}
+	}
+
+	err = db.writeDB(dbStruct)
+
+	return err
 }

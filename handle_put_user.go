@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/Divyue30597/web_server/internal/token"
+	"github.com/Divyue30597/web_server/internal/auth"
 )
 
 func (cfg *apiConfig) putUser(w http.ResponseWriter, r *http.Request) {
@@ -15,6 +14,10 @@ func (cfg *apiConfig) putUser(w http.ResponseWriter, r *http.Request) {
 		Email            string `json:"email"`
 		Password         string `json:"password"`
 		ExpiresInSeconds int64  `json:"expires_in_seconds"`
+	}
+
+	type response struct {
+		User
 	}
 
 	decode := json.NewDecoder(r.Body)
@@ -27,20 +30,18 @@ func (cfg *apiConfig) putUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tkn, err := getToken(r)
+	tkn, err := auth.GetToken(r)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, fmt.Sprintf("%v", err))
 		return
 	}
 
 	// validate token and get the user id
-	someTkn, err := token.VerifyToken(tkn, cfg.Jwt)
+	someTkn, err := auth.VerifyToken(tkn, cfg.Jwt)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, fmt.Sprintf("%v", err))
 		return
 	}
-
-	fmt.Println(someTkn.Claims.GetSubject())
 
 	id, err := someTkn.Claims.GetSubject()
 	if err != nil {
@@ -55,27 +56,22 @@ func (cfg *apiConfig) putUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := cfg.DB.UpdateUser(userId, params.Email, params.Password)
+	hashedPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "error hashing password")
+		return
+	}
+
+	user, err := cfg.DB.UpdateUser(userId, params.Email, hashedPassword)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "error updating user")
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, user)
-}
-
-func getToken(r *http.Request) (string, error) {
-	signedToken := r.Header.Get("Authorization")
-
-	if signedToken == "" {
-		return "", fmt.Errorf("no token provided")
-	}
-
-	newToken := strings.Split(signedToken, " ")
-
-	if newToken[0] != "Bearer" || len(newToken) != 2 {
-		return "", fmt.Errorf("invalid token")
-	}
-
-	return newToken[1], nil
+	respondWithJSON(w, http.StatusOK, response{
+		User: User{
+			Id:    user.Id,
+			Email: user.Email,
+		},
+	})
 }

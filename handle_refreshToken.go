@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Divyue30597/web_server/internal/auth"
 )
@@ -25,7 +26,7 @@ func (cfg *apiConfig) refreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create new token
-	token, err := auth.CreateToken(user.Id, cfg.Jwt)
+	token, err := auth.CreateToken(user.Id, time.Hour, cfg.Jwt)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "error creating token")
 		return

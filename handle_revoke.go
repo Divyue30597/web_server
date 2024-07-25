@@ -14,7 +14,7 @@ func (cfg *apiConfig) revoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = cfg.DB.UpdateUserFromRefreshToken(refresh_token)
+	err = cfg.DB.RevokeRefreshToken(refresh_token)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "error revoking token")
 		return

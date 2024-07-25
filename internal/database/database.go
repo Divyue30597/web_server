@@ -15,8 +15,9 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
+	Chirps       map[int]Chirp           `json:"chirps"`
+	Users        map[int]User            `json:"users"`
+	RefreshToken map[string]RefreshToken `json:"refresh_token"`
 }
 
 type Chirp struct {
@@ -25,11 +26,9 @@ type Chirp struct {
 }
 
 type User struct {
-	Id                         int    `json:"id"`
-	Email                      string `json:"email"`
-	Password                   string `json:"password"`
-	RefreshToken               string `json:"refresh_token"`
-	RefreshTokenExpirationTime string `json:"refresh_token_expiration_time"`
+	Id       int    `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func NewDB(path string) (*DB, error) {

@@ -46,7 +46,7 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.CreateToken(user.Id, cfg.Jwt)
+	token, err := auth.CreateToken(user.Id, time.Hour, cfg.Jwt)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "couldn't create token")
 		return

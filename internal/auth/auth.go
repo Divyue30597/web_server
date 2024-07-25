@@ -31,12 +31,12 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-func CreateToken(data int, key string) (string, error) {
+func CreateToken(data int, expiresAt time.Duration, key string) (string, error) {
 	claims := CustomClaims{
 		data,
 		jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
-			ExpiresAt: jwt.NewNumericDate(time.Unix(time.Now().Add(time.Hour).Unix(), 0).UTC()),
+			ExpiresAt: jwt.NewNumericDate(time.Unix(int64(expiresAt), 0)),
 			Issuer:    "chirpy",
 			Subject:   strconv.Itoa(data),
 		},

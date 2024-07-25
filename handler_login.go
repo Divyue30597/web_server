@@ -31,36 +31,42 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if params.ExpiresInSeconds == 0 || params.ExpiresInSeconds > 24*60*60 {
-		params.ExpiresInSeconds = time.Now().Add(time.Duration(24*60*60) * time.Second).Unix()
+		params.ExpiresInSeconds = time.Now().Add(time.Hour).Unix()
 	}
 
 	user, err := cfg.DB.GetUserByEmail(params.Email)
 	if err != nil {
+		fmt.Printf("%v - GetUserByEmail\n", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	err = auth.VerifyPassword(params.Password, user.Password)
 	if err != nil {
+		fmt.Printf("%v - VerifyPassword\n", err)
 		respondWithError(w, http.StatusUnauthorized, "invalid password")
 		return
 	}
 
 	token, err := auth.CreateToken(user.Id, time.Hour, cfg.Jwt)
 	if err != nil {
+		fmt.Printf("%v - CreateToken\n", err)
 		respondWithError(w, http.StatusBadRequest, "couldn't create token")
 		return
 	}
 
 	refreshToken, err := auth.CreateRefreshToken()
 	if err != nil {
+		fmt.Printf("%v - CreateRefreshToken\n", err)
 		respondWithError(w, http.StatusBadRequest, "couldn't create refresh token")
 		return
 	}
 
+	fmt.Println(refreshToken)
 	// save refresh token to DB with expiration time
 	err = cfg.DB.SaveRefreshToken(user.Id, refreshToken)
 	if err != nil {
+		fmt.Printf("%v - SaveRefreshToken\n", err)
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%v", err))
 		return
 	}

@@ -15,9 +15,9 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps       map[int]Chirp           `json:"chirps"`
-	Users        map[int]User            `json:"users"`
-	RefreshToken map[string]RefreshToken `json:"refresh_token"`
+	Chirps        map[int]Chirp           `json:"chirps"`
+	Users         map[int]User            `json:"users"`
+	RefreshTokens map[string]RefreshToken `json:"refresh_tokens"`
 }
 
 type Chirp struct {
@@ -56,8 +56,9 @@ func (db *DB) ensureDB() error {
 		defer file.Close()
 
 		initialData := DBStructure{
-			Chirps: make(map[int]Chirp),
-			Users:  make(map[int]User),
+			Chirps:        make(map[int]Chirp),
+			Users:         make(map[int]User),
+			RefreshTokens: make(map[string]RefreshToken),
 		}
 
 		jsonData, err := json.MarshalIndent(initialData, "", "	")

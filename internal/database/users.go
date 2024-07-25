@@ -84,7 +84,6 @@ func (db *DB) GetUsers() ([]User, error) {
 // 	if err != nil {
 // 		return User{}, err
 // 	}
-
 // 	for _, user := range users {
 // 		if user.Email == body.Email {
 // 			err := auth.VerifyPassword(user.Password, body.Password)
@@ -94,7 +93,6 @@ func (db *DB) GetUsers() ([]User, error) {
 // 			return user, nil
 // 		}
 // 	}
-
 // 	return User{}, errors.New("user not found in db")
 // }
 

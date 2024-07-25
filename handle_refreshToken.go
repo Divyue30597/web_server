@@ -15,13 +15,13 @@ func (cfg *apiConfig) refreshToken(w http.ResponseWriter, r *http.Request) {
 
 	authHeader, err := auth.GetToken(r)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%v", err))
+		respondWithError(w, http.StatusUnauthorized, fmt.Sprintf("%v", err))
 		return
 	}
 
 	user, err := cfg.DB.GetUserFromRefreshToken(authHeader)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error getting user")
+		respondWithError(w, http.StatusUnauthorized, "error getting user")
 		return
 	}
 

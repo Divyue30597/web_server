@@ -3,29 +3,28 @@ package database
 import "time"
 
 type RefreshToken struct {
-	UserId    int       `json:"user_id"`
+	UserID    int       `json:"user_id"`
 	Token     string    `json:"token"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
 func (db *DB) SaveRefreshToken(userId int, token string) error {
-	dbStruct, err := db.loadDB()
+	dbStructure, err := db.loadDB()
 	if err != nil {
 		return err
 	}
 
 	refreshToken := RefreshToken{
-		UserId:    userId,
+		UserID:    userId,
 		Token:     token,
-		ExpiresAt: time.Now().Add(60 * 24 * time.Hour).UTC(),
+		ExpiresAt: time.Now().Add(time.Hour),
 	}
-	dbStruct.RefreshToken[token] = refreshToken
+	dbStructure.RefreshTokens[token] = refreshToken
 
-	err = db.writeDB(dbStruct)
+	err = db.writeDB(dbStructure)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -36,7 +35,7 @@ func (db *DB) RevokeRefreshToken(token string) error {
 	}
 
 	// deleting refresh token
-	delete(dbStruct.RefreshToken, token)
+	delete(dbStruct.RefreshTokens, token)
 
 	err = db.writeDB(dbStruct)
 	if err != nil {
@@ -53,7 +52,7 @@ func (db *DB) GetUserFromRefreshToken(token string) (User, error) {
 	}
 
 	// check for refresh token
-	refreshToken, ok := dbStruct.RefreshToken[token]
+	refreshToken, ok := dbStruct.RefreshTokens[token]
 	if !ok {
 		return User{}, ErrNotExist
 	}
@@ -62,11 +61,10 @@ func (db *DB) GetUserFromRefreshToken(token string) (User, error) {
 		return User{}, ErrNotExist
 	}
 
-	user, err := db.GetUserById(refreshToken.UserId)
+	user, err := db.GetUserById(refreshToken.UserID)
 	if err != nil {
 		return User{}, err
 	}
 
 	return user, nil
-
 }

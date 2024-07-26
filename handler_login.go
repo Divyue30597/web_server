@@ -58,7 +58,6 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(refreshToken)
 	// save refresh token to DB with expiration time
 	err = cfg.DB.SaveRefreshToken(user.Id, refreshToken)
 	if err != nil {

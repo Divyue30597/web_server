@@ -64,8 +64,8 @@ func VerifyToken(tokenString, secretKey string) (*jwt.Token, error) {
 		return nil, err
 	}
 
-	if claims, ok := tkn.Claims.(*CustomClaims); ok && tkn.Valid {
-		fmt.Printf("Token is valid. User ID: %v\n", claims.Subject)
+	if _, ok := tkn.Claims.(*CustomClaims); ok && tkn.Valid {
+		// fmt.Printf("Token is valid. User ID: %v\n", claims.Subject)
 		return tkn, nil
 	} else {
 		return nil, fmt.Errorf("invalid token")

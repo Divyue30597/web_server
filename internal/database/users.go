@@ -2,7 +2,6 @@ package database
 
 import (
 	"errors"
-	"fmt"
 )
 
 var ErrAlreadyExists = errors.New("already exists")
@@ -44,7 +43,6 @@ func (db *DB) CreateUser(email, password string) (User, error) {
 func (db *DB) GetUserByEmail(email string) (User, error) {
 	dbStruct, err := db.loadDB()
 	if err != nil {
-		fmt.Println(err)
 		return User{}, err
 	}
 

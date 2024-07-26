@@ -36,28 +36,24 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := cfg.DB.GetUserByEmail(params.Email)
 	if err != nil {
-		fmt.Printf("%v - GetUserByEmail\n", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	err = auth.VerifyPassword(params.Password, user.Password)
 	if err != nil {
-		fmt.Printf("%v - VerifyPassword\n", err)
 		respondWithError(w, http.StatusUnauthorized, "invalid password")
 		return
 	}
 
 	token, err := auth.CreateToken(user.Id, time.Hour, cfg.Jwt)
 	if err != nil {
-		fmt.Printf("%v - CreateToken\n", err)
 		respondWithError(w, http.StatusBadRequest, "couldn't create token")
 		return
 	}
 
 	refreshToken, err := auth.CreateRefreshToken()
 	if err != nil {
-		fmt.Printf("%v - CreateRefreshToken\n", err)
 		respondWithError(w, http.StatusBadRequest, "couldn't create refresh token")
 		return
 	}
@@ -66,7 +62,6 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 	// save refresh token to DB with expiration time
 	err = cfg.DB.SaveRefreshToken(user.Id, refreshToken)
 	if err != nil {
-		fmt.Printf("%v - SaveRefreshToken\n", err)
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%v", err))
 		return
 	}

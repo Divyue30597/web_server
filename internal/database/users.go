@@ -7,6 +7,12 @@ import (
 
 var ErrAlreadyExists = errors.New("already exists")
 
+type User struct {
+	Id       int    `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func (db *DB) CreateUser(email, password string) (User, error) {
 	// check if the email already exists
 	if _, err := db.GetUserByEmail(email); !errors.Is(err, ErrNotExist) {

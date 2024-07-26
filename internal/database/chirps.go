@@ -1,8 +1,16 @@
 package database
 
-import "fmt"
+import (
+	"fmt"
+)
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
+type Chirp struct {
+	Id       int    `json:"id"`
+	Body     string `json:"body"`
+	AuthorID int    `json:"author_id"`
+}
+
+func (db *DB) CreateChirp(body string, authorID int) (Chirp, error) {
 	dbStruct, err := db.loadDB()
 	if err != nil {
 		return Chirp{}, err
@@ -10,8 +18,9 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 
 	newId := len(dbStruct.Chirps) + 1
 	newChirp := Chirp{
-		Id:   newId,
-		Body: body,
+		Id:       newId,
+		Body:     body,
+		AuthorID: authorID,
 	}
 
 	dbStruct.Chirps[newId] = newChirp

@@ -17,7 +17,7 @@ func (db *DB) SaveRefreshToken(userId int, token string) error {
 	refreshToken := RefreshToken{
 		UserID:    userId,
 		Token:     token,
-		ExpiresAt: time.Now().Add(time.Hour),
+		ExpiresAt: time.Now().Add(60 * 24 * time.Hour),
 	}
 	dbStructure.RefreshTokens[token] = refreshToken
 

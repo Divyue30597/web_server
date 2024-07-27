@@ -70,8 +70,9 @@ func (cfg *apiConfig) putUser(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
-			Id:    user.Id,
-			Email: user.Email,
+			Id:          user.Id,
+			Email:       user.Email,
+			IsChirpyRed: user.IsChirpyRed,
 		},
 	})
 }

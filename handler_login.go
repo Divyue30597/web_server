@@ -71,6 +71,7 @@ func (cfg *apiConfig) login(w http.ResponseWriter, r *http.Request) {
 		User: User{
 			Id:           user.Id,
 			Email:        user.Email,
+			IsChirpyRed:  user.IsChirpyRed,
 			Token:        token,
 			RefreshToken: refreshToken,
 		},

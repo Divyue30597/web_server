@@ -18,6 +18,7 @@ type apiConfig struct {
 	fileserverhits int
 	DB             *database.DB
 	Jwt            string
+	ApiKey         string
 }
 
 type User struct {
@@ -26,11 +27,13 @@ type User struct {
 	Password     string `json:"-"`
 	Token        string `json:"token"`
 	RefreshToken string `json:"refresh_token"`
+	IsChirpyRed  bool   `json:"is_chirpy_red"`
 }
 
 func main() {
 	godotenv.Load()
 	jwtSecret := os.Getenv("JWT_SECRET")
+	polka_key := os.Getenv("POLKA_KEY")
 	mux := http.NewServeMux()
 
 	db, err := database.NewDB("database.json")
@@ -42,6 +45,7 @@ func main() {
 		fileserverhits: 0,
 		DB:             db,
 		Jwt:            jwtSecret,
+		ApiKey:         polka_key,
 	}
 
 	mux.Handle("/", http.FileServer(http.Dir(".")))
@@ -62,6 +66,7 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", cfg.refreshToken)
 	mux.HandleFunc("POST /api/revoke", cfg.revoke)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", cfg.deleteChirps)
+	mux.HandleFunc("POST /api/polka/webhooks", cfg.polkaWebhooks)
 
 	server := &http.Server{
 		Addr:    ":" + port,
